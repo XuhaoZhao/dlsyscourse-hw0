@@ -48,7 +48,28 @@ def parse_mnist(image_filename, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR CODE
-    pass
+    # base_dir = '/content/drive/MyDrive/10714/hw0/'
+    base_dir = '/home/zxh/code-repo/dlsyscourse-hw0/'
+    image_file_path = base_dir + image_filename
+    label_file_path = base_dir + label_filename
+    with gzip.open(image_file_path, 'rb') as f:  # 'rt'表示以文本模式读取
+        image_content = f.read()
+        image_offset = 16
+        num_bytes = len(image_content) - image_offset
+        format_str = f'{num_bytes}B'
+        image_content_data = struct.unpack_from(format_str,image_content,image_offset)
+        array = np.array(image_content_data, dtype=np.uint8)
+        n = array.size // 784
+        images = array.reshape((n, 784)).astype(np.float32) / 255.0
+    with gzip.open(label_file_path, 'rb') as f:  # 'rt'表示以文本模式读取
+        label_content = f.read()
+        label_offset = 8
+        num_bytes = len(label_content) - label_offset
+        format_str = f'{num_bytes}B'
+        label_content_data = struct.unpack_from(format_str,label_content,label_offset)
+        array = np.array(label_content_data, dtype=np.uint8)
+        labels = array
+    return images,labels
     ### END YOUR CODE
 
 
