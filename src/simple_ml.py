@@ -89,9 +89,22 @@ def softmax_loss(Z, y):
         Average softmax loss over the sample.
     """
     ### BEGIN YOUR CODE
-    pass
-    ### END YOUR CODE
 
+    exp_loss = np.exp(Z)
+    exp_loss = np.sum(exp_loss,axis=1)
+    exp_loss = np.log(exp_loss)
+
+    batch_size,num_classes = Z.shape
+    one_hot = np.eye(num_classes)[y]
+    result = np.sum(Z * one_hot, axis=1, keepdims=True)
+    result = result.reshape(-1)
+    loss = exp_loss-result
+    return np.mean(loss)
+
+    ### END YOUR CODE
+def softmax(Z):
+    exp_Z = np.exp(Z - np.max(Z, axis=1, keepdims=True))  # 防止溢出
+    return exp_Z / np.sum(exp_Z, axis=1, keepdims=True)
 
 def softmax_regression_epoch(X, y, theta, lr = 0.1, batch=100):
     """ Run a single epoch of SGD for softmax regression on the data, using
@@ -112,9 +125,25 @@ def softmax_regression_epoch(X, y, theta, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    num_examples, input_dim = X.shape
+    num_classes = theta.shape[1]
+    for i in range(0, num_examples, batch):
+        X_batch = X[i:i+batch]
+        y_batch = y[i:i+batch]
+        
+        logits = X_batch @ theta  # 计算未归一化的分数
+        probs = softmax(logits)  # 计算 softmax 概率
+        
+        y_one_hot = np.zeros((y_batch.shape[0], num_classes), dtype=np.float32)
+        y_one_hot[np.arange(y_batch.shape[0]), y_batch] = 1  # 独热编码
+        
+        grad = (X_batch.T @ (probs - y_one_hot)) / y_batch.shape[0]  # 计算梯度
+        theta -= lr * grad  # 更新参数
+
     ### END YOUR CODE
 
+def relu(intX):
+    return np.maximum(0,intX)
 
 def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
     """ Run a single epoch of SGD for a two-layer neural network defined by the
@@ -139,7 +168,26 @@ def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    num_examples, input_dim = X.shape
+    hidden_dim, num_classes = W2.shape
+    for i in range(0, num_examples, batch):
+        X_batch = X[i:i+batch]
+        y_batch = y[i:i+batch]
+
+        y_one_hot = np.zeros((y_batch.shape[0], num_classes), dtype=np.float32)
+        y_one_hot[np.arange(y_batch.shape[0]), y_batch] = 1  # 独热编码
+        
+        Z1 = relu(X_batch @ W1)
+        G2 = softmax(Z1 @ W2) - y_one_hot
+        G1 = (Z1 > 0) * np.dot(G2, W2.T)
+
+        grad_W1 = np.dot(X_batch.T, G1) / y_batch.shape[0]
+        grad_W2 = np.dot(Z1.T, G2) / y_batch.shape[0]
+        # 更新权重
+        W1 -= lr * grad_W1
+        W2 -= lr * grad_W2
+    return W1,W2
+
     ### END YOUR CODE
 
 
@@ -190,7 +238,7 @@ if __name__ == "__main__":
                              "data/train-labels-idx1-ubyte.gz")
     X_te, y_te = parse_mnist("data/t10k-images-idx3-ubyte.gz",
                              "data/t10k-labels-idx1-ubyte.gz")
-
+    
     print("Training softmax regression")
     train_softmax(X_tr, y_tr, X_te, y_te, epochs=10, lr = 0.1)
 
